@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top" />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      #task-form input, #task-form select {
+        margin: 5px;
+        padding: 5px;
+      }
+      .task {
+        background: #f9f9f9;
+        margin: 10px 0;
+        padding: 10px;
+        border-left: 4px solid #2196f3;
+        border-radius: 5px;
+      }
+      button {
+        margin-right: 5px;
+        padding: 5px 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Task Manager</h2>
+
+    <div id="task-form">
+      <input id="taskName" placeholder="Task Name" />
+      <input id="taskDesc" placeholder="Description" />
+      <input id="taskDate" type="date" />
+      <select id="taskStatus">
+        <option value="Pending">Pending</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Done">Done</option>
+      </select>
+      <button onclick="addTask()">Add Task</button>
+    </div>
+
+    <hr />
+    <div id="task-list">Loading tasks...</div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", loadTasks);
+
+      function loadTasks() {
+        google.script.run.withSuccessHandler(displayTasks).getTasks();
+      }
+
+      function displayTasks(tasks) {
+        const container = document.getElementById("task-list");
+        container.innerHTML = '';
+        if (tasks.length === 0) {
+          container.innerHTML = '<p>No tasks yet</p>';
+          return;
+        }
+        tasks.forEach(task => {
+          const div = document.createElement('div');
+          div.className = 'task';
+          div.innerHTML = `
+            <b>${task.name}</b><br>
+            ${task.description}<br>
+            Due: ${task.dueDate} | Status: ${task.status}<br>
+            <button onclick="markDone('${task.id}')">Mark Done</button>
+            <button onclick="removeTask('${task.id}')">Delete</button>
+          `;
+          container.appendChild(div);
+        });
+      }
+
+      function addTask() {
+        const task = {
+          name: document.getElementById("taskName").value,
+          description: document.getElementById("taskDesc").value,
+          dueDate: document.getElementById("taskDate").value,
+          status: document.getElementById("taskStatus").value
+        };
+        if (!task.name || !task.dueDate) {
+          alert("Task name and due date are required.");
+          return;
+        }
+        google.script.run.withSuccessHandler(loadTasks).addTask(task);
+        document.getElementById("taskName").value = '';
+        document.getElementById("taskDesc").value = '';
+        document.getElementById("taskDate").value = '';
+        document.getElementById("taskStatus").value = 'Pending';
+      }
+
+      function markDone(id) {
+        google.script.run.withSuccessHandler(tasks => {
+          const task = tasks.find(t => t.id == id);
+          if (task) {
+            task.status = "Done";
+            google.script.run.withSuccessHandler(loadTasks).updateTask(task);
+          }
+        }).getTasks();
+      }
+
+      function removeTask(id) {
+        google.script.run.withSuccessHandler(loadTasks).deleteTask(id);
+      }
+    </script>
+  </body>
+</html>
